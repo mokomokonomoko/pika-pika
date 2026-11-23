@@ -1,168 +1,193 @@
 <!DOCTYPE html>
-<html lang="en-us">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | pika-pika</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico">
-    <link rel="stylesheet" href="TemplateData/style.css">
-  <script src="TemplateData/profiler.js"></script>
-  </head>
-  <body>
-    <div id="unity-container" class="unity-desktop">
-      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
-      <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
-        </div>
-      </div>
-      <div id="unity-warning"> </div>
-      <div id="unity-footer">
-        <div id="unity-logo-title-footer"></div>
-        <div id="unity-fullscreen-button"></div>
-        <div id="unity-build-title">pika-pika</div>
-      </div>
-    </div>
-    <script>
-      var canvas = document.querySelector("#unity-canvas");
+<html lang="ja-jp">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>pika-pika</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
 
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
-      function unityShowBanner(msg, type) {
-        var warningBanner = document.querySelector("#unity-warning");
-        function updateBannerVisibility() {
-          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-        }
-        var div = document.createElement('div');
-        div.innerHTML = msg;
-        warningBanner.appendChild(div);
-        if (type == 'error') div.style = 'background: red; padding: 10px;';
-        else {
-          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-          setTimeout(function() {
-            warningBanner.removeChild(div);
-            updateBannerVisibility();
-          }, 5000);
-        }
-        updateBannerVisibility();
+    /* 背面カメラの映像。画面全体に表示する */
+    #qr-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      background: #000;
+    }
+
+    /* フレーム解析用の作業用キャンバス。画面には出さない */
+    #qr-canvas {
+      display: none;
+    }
+
+    /* Unityの画面は下部のバナーとして重ねる(カメラ映像は隠さない) */
+    #unity-container {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 25vh;
+      z-index: 1;
+    }
+
+    #unity-canvas {
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: block;
+    }
+
+    #unity-warning {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 2;
+      color: #fff;
+      background: rgba(200, 0, 0, 0.8);
+      font-family: sans-serif;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <video id="qr-video" playsinline muted autoplay></video>
+  <canvas id="qr-canvas"></canvas>
+
+  <div id="unity-container">
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+  </div>
+  <div id="unity-warning"></div>
+
+  <script src="jsQR.js"></script>
+  <script src="Build/b728c01fa1147ae88d6e76053a2705a8.loader.js"></script>
+  <script>
+    var buildUrl = "Build";
+    var loaderUrl = buildUrl + "/b728c01fa1147ae88d6e76053a2705a8.loader.js";
+    var config = {
+      dataUrl: buildUrl + "/fbf1ca2a2bca594721f747b1e9a657d9.data",
+      frameworkUrl: buildUrl + "/407a213a708a0ad1e331539534d597e1.framework.js",
+      codeUrl: buildUrl + "/1514a159200b5289e713b21e8d8f7084.wasm",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "DefaultCompany",
+      productName: "pika-pika",
+      productVersion: "0.1.0",
+    };
+
+    var container = document.querySelector("#unity-container");
+    var canvas = document.querySelector("#unity-canvas");
+    var warningBanner = document.querySelector("#unity-warning");
+
+    function unityShowBanner(msg, type) {
+      function updateBannerVisibility() {
+        warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
       }
-
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/b728c01fa1147ae88d6e76053a2705a8.loader.js";
-      var config = {
-        arguments: [],
-        dataUrl: buildUrl + "/3d63fc312dabc08c1b4b28ef16e181d8.data",
-        frameworkUrl: buildUrl + "/407a213a708a0ad1e331539534d597e1.framework.js",
-        codeUrl: buildUrl + "/1514a159200b5289e713b21e8d8f7084.wasm",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
-        productName: "pika-pika",
-        productVersion: "0.1.0",
-        showBanner: unityShowBanner,
-        // errorHandler: function(err, url, line) {
-        //    alert("error " + err + " occurred at line " + line);
-        //    // Return 'true' if you handled this error and don't want Unity
-        //    // to process it further, 'false' otherwise.
-        //    return true;
-        // },
-      };
-
-      // By default, Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
-
-      // If you would like all file writes inside Unity Application.persistentDataPath
-      // directory to automatically persist so that the contents are remembered when
-      // the user revisits the site the next time, uncomment the following line:
-      // config.autoSyncPersistentDataPath = true;
-      // This autosyncing is currently not the default behavior to avoid regressing
-      // existing user projects that might rely on the earlier manual
-      // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
-      // expected to change.
-
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
-
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-        document.querySelector("#unity-container").className = "unity-mobile";
-        canvas.className = "unity-mobile";
-
-        // To lower canvas resolution on mobile devices to gain some
-        // performance, uncomment the following line:
-        // config.devicePixelRatio = 1;
-
-
-      } else {
-        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-        canvas.style.width = "960px";
-        canvas.style.height = "600px";
+      var div = document.createElement('div');
+      div.innerHTML = msg;
+      warningBanner.appendChild(div);
+      if (type == 'error') div.style = 'background: red; padding: 10px;';
+      else {
+        if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+        setTimeout(function () {
+          warningBanner.removeChild(div);
+          updateBannerVisibility();
+        }, 5000);
       }
+      updateBannerVisibility();
+    }
 
-      document.querySelector("#unity-loading-bar").style.display = "block";
+    var script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = () => {
+      createUnityInstance(canvas, config, (progress) => {
+        // 進捗バーは今回省略
+      }).then((unityInstance) => {
+        // .jslib から SendMessage するために、インスタンスをグローバルに保持しておく
+        window.unityInstance = unityInstance;
+      }).catch((message) => {
+        alert(message);
+      });
+    };
+    document.body.appendChild(script);
+  </script>
 
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
-              }).then((unityInstance) => {
-                document.querySelector("#unity-loading-bar").style.display = "none";
-                document.querySelector("#unity-fullscreen-button").onclick = () => {
-                  unityInstance.SetFullscreen(1);
-                };
+  <script>
+    // --- QRコード読み取り(カメラ起動・スキャンループ) ---
+    // StartQRScanner() は Assets/Plugins/WebGL/QRScanner.jslib から呼ばれる
+    window.__qrScanner = {
+      video: document.getElementById("qr-video"),
+      canvas: document.getElementById("qr-canvas"),
+      ctx: document.getElementById("qr-canvas").getContext("2d", { willReadFrequently: true }),
+      started: false,
+      lastText: null,
+      lastSentAt: 0,
+      debounceMs: 3000,
 
-                var profile = unityProfiler.createButton(unityInstance);
-                profile.style.marginLeft = '5px';
-                document.querySelector("#unity-build-title").appendChild(profile);
+      start: function () {
+        if (this.started) return;
+        this.started = true;
 
-                // Unloading web content from DOM so that browser GC can run can be tricky to get right.
-                // This code snippet shows how to correctly implement a Unity content Unload mechanism to a web page.
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          unityShowBanner("このブラウザはカメラ(getUserMedia)に対応していません。", "error");
+          return;
+        }
 
-                // Unloading Unity content enables a web page to reclaim the memory used by Unity, e.g. for
-                // the purpose of later loading another Unity content instance on the _same_ web page.
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        }).then((stream) => {
+          this.video.srcObject = stream;
+          return this.video.play();
+        }).then(() => {
+          requestAnimationFrame(() => this.tick());
+        }).catch((err) => {
+          unityShowBanner("カメラを起動できませんでした: " + err.message, "error");
+        });
+      },
 
-                // When using this functionality, take caution to carefully make sure to clear all JavaScript code,
-                // DOM element and event handler references to the old content you may have retained, or
-                // otherwise the browser's garbage collector will be unable to reclaim the old page.
+      tick: function () {
+        if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+          var w = this.video.videoWidth;
+          var h = this.video.videoHeight;
+          if (w > 0 && h > 0) {
+            this.canvas.width = w;
+            this.canvas.height = h;
+            this.ctx.drawImage(this.video, 0, 0, w, h);
+            var imageData = this.ctx.getImageData(0, 0, w, h);
+            var result = jsQR(imageData.data, w, h);
+            if (result && result.data) {
+              this.onDetected(result.data);
+            }
+          }
+        }
+        requestAnimationFrame(() => this.tick());
+      },
 
-                // N.b. Unity content does _not_ need to be manually unloaded when the user is navigating away from
-                // the current page to another web page. The browser will take care to clear memory of old visited
-                // pages automatically. This functionality is only needed if you want to switch between loading
-                // multiple Unity builds on a single web page.
-                var quit = document.createElement("button");
-                quit.style = "margin-left: 5px; background-color: lightgray; border: none; padding: 5px; cursor: pointer";
-                quit.innerHTML = "Unload";
-                document.querySelector("#unity-build-title").appendChild(quit);
-                quit.onclick = () => {
-                  // Quit Unity application execution
-                  unityInstance.Quit().then(() => {
-                    unityProfiler.shutDown();
-                    // Remove DOM elements from the page so GC can run
-                    document.querySelector("#unity-container").remove();
-                    canvas = null;
-                    // Remover script elements from the page so GC can run
-                    script.remove();
-                    script = null;
-                  });
-                };
-              }).catch((message) => {
-                alert(message);
-              });
-            };
-
-      document.body.appendChild(script);
-
-    </script>
-  </body>
+      onDetected: function (text) {
+        var now = performance.now();
+        var isSameAsLast = (text === this.lastText);
+        if (isSameAsLast && (now - this.lastSentAt) < this.debounceMs) {
+          return;
+        }
+        this.lastText = text;
+        this.lastSentAt = now;
+        if (window.unityInstance) {
+          window.unityInstance.SendMessage("QRManager", "OnQRCodeScanned", text);
+        }
+      }
+    };
+  </script>
+</body>
 </html>
