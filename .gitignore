@@ -1,0 +1,60 @@
+# ===== Unity が自動生成するフォルダ(共有しない) =====
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# WebGL のビルド出力(ビルドはそれぞれのPCで行う)
+/[Ww]eb[Gg][Ll]*/
+
+# ===== IDE・エディタの設定 =====
+.vs/
+.vscode/
+.idea/
+.gradle/
+.consulo/
+/[Aa]ssets/Plugins/Editor/JetBrains*
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# ===== ビルド成果物など =====
+sysinfo.txt
+*.apk
+*.aab
+*.unitypackage
+*.app
+crashlytics-build.properties
+ExportedObj/
+
+# Addressables のビルドデータ
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# ===== OS が作るファイル =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Claude Code の個人設定(共有用の .claude/settings.json は共有する) =====
+.claude/settings.local.json
