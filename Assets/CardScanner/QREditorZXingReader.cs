@@ -1,13 +1,10 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using ZXing;
 
 namespace CardScanner
 {
-#if UNITY_EDITOR
-    // Unityエディタの Play モード専用。QREditorWebcamView が表示しているMacカメラの映像
-    // (枠に表示されている範囲)を一定間隔でZXing.Netに渡してQRコードを読み取る。
-    // 検出した文字列は、スマホ側(JS)と同じ公開メソッド QRManager.OnQRCodeScanned を直接呼ぶ。
-    // WebGLビルドには含まれない(クラス全体がUNITY_EDITOR、zxing.dllもWebGL対象外に設定済み)。
+    // Decodes the Editor webcam preview and forwards the result through the same callback as WebGL.
     public class QREditorZXingReader : MonoBehaviour
     {
         private const float ScanIntervalSeconds = 0.2f;
@@ -22,42 +19,23 @@ namespace CardScanner
         private string lastText;
         private float lastSentAt = -DebounceSeconds;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Bootstrap()
+        public void Begin(QRManager manager, QREditorWebcamView preview)
         {
-            if (FindAnyObjectByType<QREditorZXingReader>() != null)
-            {
-                return;
-            }
-
-            var go = new GameObject("QREditorZXingReader (Editor Only)");
-            go.AddComponent<QREditorZXingReader>();
-        }
-
-        private void Start()
-        {
-            qrManager = FindAnyObjectByType<QRManager>();
-            webcamView = FindAnyObjectByType<QREditorWebcamView>();
-
-            if (qrManager == null)
-            {
-                Debug.LogWarning("QREditorZXingReader: シーン内に QRManager が見つかりません。");
-            }
-            if (webcamView == null)
-            {
-                Debug.LogWarning("QREditorZXingReader: QREditorWebcamView が見つかりません。");
-            }
-
-            barcodeReader = new BarcodeReaderGeneric
+            qrManager = manager;
+            webcamView = preview;
+            scanTimer = 0f;
+            lastText = null;
+            barcodeReader ??= new BarcodeReaderGeneric
             {
                 AutoRotate = true,
                 Options = { TryHarder = false, PossibleFormats = new[] { BarcodeFormat.QR_CODE } }
             };
+            enabled = true;
         }
 
         private void Update()
         {
-            scanTimer += Time.deltaTime;
+            scanTimer += Time.unscaledDeltaTime;
             if (scanTimer < ScanIntervalSeconds)
             {
                 return;
@@ -127,5 +105,5 @@ namespace CardScanner
             }
         }
     }
-#endif
 }
+#endif

@@ -17,5 +17,17 @@ mergeInto(LibraryManager.library, {
     } else {
       console.error("QRScanner: window.__qrScanner が見つかりません。WebGL Templateが QRTest になっているか確認してください。");
     }
+  },
+
+  SetQRCameraMode: function (mode) {
+    if (window.__qrScanner) window.__qrScanner.setMode(mode);
+  },
+
+  CaptureQRCameraPhoto: function () {
+    if (window.__qrScanner) window.__qrScanner.capturePhoto();
+  },
+
+  SetQRPortraitOverlay: function (png) {
+    if (window.__qrScanner) window.__qrScanner.setPortrait(UTF8ToString(png));
   }
 });

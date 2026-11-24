@@ -1,173 +1,176 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace CardScanner
 {
 #if UNITY_EDITOR
-    // Unityエディタの Play モード専用。Macのカメラをスマホと同じ枠(QRManager.CameraRect)の
-    // 位置・大きさでRawImageに表示する。WebGLビルドには含まれない(クラス全体がUNITY_EDITOR)。
+    // The webcam preview uses the same normalized screen rectangle as the browser scanner.
     public class QREditorWebcamView : MonoBehaviour
     {
-        private QRManager qrManager;
-        private WebCamTexture webCamTexture;
-        private RawImage rawImage;
-        private RectTransform rawImageRect;
-        private RectInt cropPixelRect;
+        private const float StartTimeout = 8f;
+        private QRManager manager;
+        private WebCamTexture webcam;
+        private RawImage preview;
+        private RectInt crop;
+        private Color32[] framePixels;
+        private Color32[] croppedPixels;
+        private float openedAt;
+        private bool ready;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Bootstrap()
+        public bool Open(QRManager scanner)
         {
-            if (FindAnyObjectByType<QREditorWebcamView>() != null)
-            {
-                return;
-            }
-
-            var go = new GameObject("QREditorWebcamView (Editor Only)");
-            go.AddComponent<QREditorWebcamView>();
-        }
-
-        private void Start()
-        {
-            qrManager = FindAnyObjectByType<QRManager>();
-            if (qrManager == null)
-            {
-                Debug.LogWarning("QREditorWebcamView: シーン内に QRManager が見つかりません。");
-            }
-
-            BuildUi();
-
+            Close();
+            manager = scanner;
             if (WebCamTexture.devices.Length == 0)
             {
-                Debug.LogWarning("QREditorWebcamView: 利用できるカメラが見つかりません。");
-                return;
+                manager.OnQRCameraStatus("No webcam detected. Connect a camera or check your system camera permissions.");
+                return false;
             }
 
-            webCamTexture = new WebCamTexture();
-            rawImage.texture = webCamTexture;
-            webCamTexture.Play();
+            if (preview == null)
+                BuildPreview();
+
+            try
+            {
+                webcam = new WebCamTexture(640, 480, 24);
+                preview.texture = webcam;
+                webcam.Play();
+                openedAt = Time.unscaledTime;
+                return true;
+            }
+            catch (UnityException)
+            {
+                ReportStartFailure();
+                return false;
+            }
         }
 
-        private void BuildUi()
+        private void BuildPreview()
         {
-            var canvasGo = new GameObject("Canvas");
-            canvasGo.transform.SetParent(transform, false);
-            var canvas = canvasGo.AddComponent<Canvas>();
+            var overlay = new GameObject("Webcam Overlay", typeof(Canvas));
+            overlay.transform.SetParent(transform, false);
+            var canvas = overlay.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
-            scaler.scaleFactor = 1f;
+            canvas.sortingOrder = 100;
 
-            var imageGo = new GameObject("WebcamRawImage");
-            imageGo.transform.SetParent(canvasGo.transform, false);
-            rawImage = imageGo.AddComponent<RawImage>();
-            rawImage.color = Color.white;
-
-            rawImageRect = rawImage.rectTransform;
-            rawImageRect.anchorMin = new Vector2(0f, 1f);
-            rawImageRect.anchorMax = new Vector2(0f, 1f);
-            rawImageRect.pivot = new Vector2(0f, 1f);
+            var image = new GameObject("Live Preview", typeof(RectTransform));
+            image.transform.SetParent(overlay.transform, false);
+            preview = image.AddComponent<RawImage>();
+            preview.raycastTarget = false;
+            preview.enabled = false;
+            preview.rectTransform.anchorMin = new Vector2(0, 1);
+            preview.rectTransform.anchorMax = new Vector2(0, 1);
         }
 
         private void Update()
         {
-            if (rawImageRect == null)
+            if (webcam == null)
+                return;
+
+            if (!ready && (!webcam.didUpdateThisFrame || webcam.width <= 16 || webcam.height <= 16))
             {
+                if (Time.unscaledTime - openedAt >= StartTimeout)
+                    ReportStartFailure();
                 return;
             }
 
-            Rect rect = qrManager != null ? qrManager.CameraRect : new Rect(0.3f, 0.5f, 0.4f, 0.4f);
-
-            float widthPx = rect.width * Screen.width;
-            float heightPx = rect.height * Screen.width; // 幅基準にして、スマホ側(JS)と同じ正方形の規約を保つ
-            float leftPx = rect.x * Screen.width;
-            float topPx = rect.y * Screen.height;
-
-            rawImageRect.sizeDelta = new Vector2(widthPx, heightPx);
-            rawImageRect.anchoredPosition = new Vector2(leftPx, -topPx);
-
-            UpdateCrop(widthPx, heightPx);
+            UpdatePreview();
+            if (!ready && crop.width > 0 && crop.height > 0)
+            {
+                ready = true;
+                preview.enabled = true;
+                manager.OnQRCameraStatus("ready");
+            }
         }
 
-        // RawImageはデフォルトでテクスチャを枠いっぱいに引き伸ばすため、
-        // 縦横比を保ったまま枠に合わせて切り取る(CSSのobject-fit: coverと同じ考え方)。
-        // ここで計算した切り取り範囲(cropPixelRect)は、QREditorZXingReaderのQR読み取りにも
-        // そのまま使われるので、「画面に表示されている範囲だけを読み取る」が自然に成立する。
-        private void UpdateCrop(float boxWidthPx, float boxHeightPx)
+        private void UpdatePreview()
         {
-            if (webCamTexture == null || webCamTexture.width <= 16 || boxWidthPx <= 0f || boxHeightPx <= 0f)
-            {
+            Rect rect = manager.CameraRect;
+            float maxSide = Mathf.Max(rect.width, rect.height);
+            if (rect.width <= 0f || rect.height <= 0f)
                 return;
-            }
 
-            int texW = webCamTexture.width;
-            int texH = webCamTexture.height;
-            float texAspect = (float)texW / texH;
-            float boxAspect = boxWidthPx / boxHeightPx;
+            float scale = Mathf.Min(Screen.width, Screen.height * 0.64f / maxSide);
+            float width = rect.width * scale;
+            float height = rect.height * scale;
+            int angle = webcam.videoRotationAngle;
+            var size = angle % 180 == 0 ? new Vector2(width, height) : new Vector2(height, width);
+            RectTransform frame = preview.rectTransform;
+            frame.sizeDelta = size;
+            frame.anchoredPosition = new Vector2(
+                (rect.x + rect.width / 2) * Screen.width, -(rect.y * Screen.height + height / 2));
+            frame.localEulerAngles = new Vector3(0, 0, -angle);
 
-            int cropW, cropH, cropX, cropY;
-            if (texAspect > boxAspect)
+            int videoWidth = webcam.width;
+            int videoHeight = webcam.height;
+            float frameAspect = size.x / size.y;
+            int cropWidth = Mathf.Clamp(Mathf.RoundToInt(videoHeight * frameAspect), 1, videoWidth);
+            int cropHeight = Mathf.Clamp(Mathf.RoundToInt(videoWidth / frameAspect), 1, videoHeight);
+            crop = new RectInt((videoWidth - cropWidth) / 2, (videoHeight - cropHeight) / 2, cropWidth, cropHeight);
+            var uv = new Rect((float)crop.x / videoWidth, (float)crop.y / videoHeight,
+                (float)crop.width / videoWidth, (float)crop.height / videoHeight);
+            if (webcam.videoVerticallyMirrored)
             {
-                cropH = texH;
-                cropW = Mathf.RoundToInt(cropH * boxAspect);
-                cropX = (texW - cropW) / 2;
-                cropY = 0;
-            }
-            else
-            {
-                cropW = texW;
-                cropH = Mathf.RoundToInt(cropW / boxAspect);
-                cropX = 0;
-                cropY = (texH - cropH) / 2;
+                uv.y += uv.height;
+                uv.height = -uv.height;
             }
 
-            cropPixelRect = new RectInt(cropX, cropY, cropW, cropH);
-            rawImage.uvRect = new Rect(
-                (float)cropX / texW,
-                (float)cropY / texH,
-                (float)cropW / texW,
-                (float)cropH / texH);
+            preview.uvRect = uv;
         }
 
-        // 現在表示中のクロップ範囲のピクセルを返す(QR読み取り用)。表示できていない場合はnull。
+        // The reader receives only pixels within the visible frame.
         public Color32[] GetCroppedPixels(out int width, out int height)
         {
-            width = 0;
-            height = 0;
-
-            if (webCamTexture == null || webCamTexture.width <= 16 || cropPixelRect.width <= 0 || cropPixelRect.height <= 0)
-            {
+            width = crop.width;
+            height = crop.height;
+            if (!ready || webcam == null)
                 return null;
-            }
 
-            int texW = webCamTexture.width;
-            int texH = webCamTexture.height;
-            Color32[] full = webCamTexture.GetPixels32();
+            int videoWidth = webcam.width;
+            int videoHeight = webcam.height;
+            if (crop.xMax > videoWidth || crop.yMax > videoHeight)
+                return null;
 
-            int cropX = Mathf.Clamp(cropPixelRect.x, 0, texW - 1);
-            int cropY = Mathf.Clamp(cropPixelRect.y, 0, texH - 1);
-            int cropW = Mathf.Clamp(cropPixelRect.width, 1, texW - cropX);
-            int cropH = Mathf.Clamp(cropPixelRect.height, 1, texH - cropY);
+            if (framePixels == null || framePixels.Length != videoWidth * videoHeight)
+                framePixels = new Color32[videoWidth * videoHeight];
+            webcam.GetPixels32(framePixels);
+            if (croppedPixels == null || croppedPixels.Length != width * height)
+                croppedPixels = new Color32[width * height];
 
-            var cropped = new Color32[cropW * cropH];
-            for (int row = 0; row < cropH; row++)
-            {
-                int srcRowStart = (cropY + row) * texW + cropX;
-                int dstRowStart = row * cropW;
-                System.Array.Copy(full, srcRowStart, cropped, dstRowStart, cropW);
-            }
+            for (int row = 0; row < height; row++)
+                Array.Copy(framePixels, (crop.y + row) * videoWidth + crop.x, croppedPixels, row * width, width);
 
-            width = cropW;
-            height = cropH;
-            return cropped;
+            return croppedPixels;
         }
 
-        private void OnDestroy()
+        public void Close()
         {
-            if (webCamTexture != null)
+            ready = false;
+            crop = default;
+            if (preview != null)
             {
-                webCamTexture.Stop();
+                preview.enabled = false;
+                preview.texture = null;
             }
+
+            if (webcam == null)
+                return;
+
+            webcam.Stop();
+            Destroy(webcam);
+            webcam = null;
+            framePixels = null;
+            croppedPixels = null;
         }
+
+        private void ReportStartFailure()
+        {
+            Close();
+            manager.OnQRCameraStatus("Couldn't get video. Check camera permissions and close other apps using the webcam.");
+        }
+
+        private void OnDisable() => Close();
     }
 #endif
 }
