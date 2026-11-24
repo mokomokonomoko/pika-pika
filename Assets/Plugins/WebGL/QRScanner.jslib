@@ -8,5 +8,14 @@ mergeInto(LibraryManager.library, {
     } else {
       console.error("QRScanner: window.__qrScanner が見つかりません。WebGL Templateが QRTest になっているか確認してください。");
     }
+  },
+
+  // x, y, width, height はすべて 0〜1 の割合。詳しい規約はindex.html内のコメント参照。
+  SetQRCameraRect: function (x, y, width, height) {
+    if (window.__qrScanner) {
+      window.__qrScanner.setRect(x, y, width, height);
+    } else {
+      console.error("QRScanner: window.__qrScanner が見つかりません。WebGL Templateが QRTest になっているか確認してください。");
+    }
   }
 });

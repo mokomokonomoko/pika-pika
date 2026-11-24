@@ -5101,6 +5101,14 @@ async function createWasm() {
   		Module.WebPlayer.PlayerIsInitialized();
   	}
 
+  function _SetQRCameraRect(x, y, width, height) {
+      if (window.__qrScanner) {
+        window.__qrScanner.setRect(x, y, width, height);
+      } else {
+        console.error("QRScanner: window.__qrScanner が見つかりません。WebGL Templateが QRTest になっているか確認してください。");
+      }
+    }
+
   function _StartQRScanner() {
       if (window.__qrScanner) {
         window.__qrScanner.start();
@@ -17070,6 +17078,8 @@ var wasmImports = {
   JS_WebGPU_Setup: _JS_WebGPU_Setup,
   /** @export */
   JS_WebPlayer_FinishInitialization: _JS_WebPlayer_FinishInitialization,
+  /** @export */
+  SetQRCameraRect: _SetQRCameraRect,
   /** @export */
   StartQRScanner: _StartQRScanner,
   /** @export */
