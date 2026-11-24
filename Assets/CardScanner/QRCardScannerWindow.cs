@@ -13,10 +13,12 @@ namespace CardScanner
     public class QRCardScannerWindow : EditorWindow
     {
         private const int MaxHistory = 10;
+        private const int GridColumns = 6;
+        private const float GridButtonWidth = 44f;
 
         [SerializeField] private string freeInputText = "";
         [SerializeField] private List<string> history = new List<string>();
-        private Vector2 historyScroll;
+        private Vector2 scroll;
 
         [MenuItem("Window/Card Scanner/Simulator")]
         private static void Open()
@@ -41,6 +43,8 @@ namespace CardScanner
 
         private void OnGUI()
         {
+            scroll = EditorGUILayout.BeginScrollView(scroll);
+
             EditorGUILayout.LabelField("カード読み取りシミュレーター", EditorStyles.boldLabel);
 
             if (!EditorApplication.isPlaying)
@@ -50,16 +54,32 @@ namespace CardScanner
 
             using (new EditorGUI.DisabledScope(!EditorApplication.isPlaying))
             {
-                EditorGUILayout.Space();
-                foreach (var card in QRCardScannerSimulator.PresetCards)
-                {
-                    if (GUILayout.Button(card))
-                    {
-                        Send(card);
-                    }
-                }
+                var presets = QRCardScannerSimulator.PresetCards;
 
                 EditorGUILayout.Space();
+                if (GUILayout.Button(presets[0])) // TEST123
+                {
+                    Send(presets[0]);
+                }
+
+                EditorGUILayout.Space(8);
+                EditorGUILayout.LabelField($"カード (CARD:{1:D4}〜CARD:{presets.Length - 1:D4})");
+                for (int row = 1; row < presets.Length; row += GridColumns)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    for (int col = 0; col < GridColumns && (row + col) < presets.Length; col++)
+                    {
+                        string card = presets[row + col];
+                        string shortLabel = card.Substring(card.IndexOf(':') + 1); // "CARD:0001" -> "0001"
+                        if (GUILayout.Button(shortLabel, GUILayout.Width(GridButtonWidth)))
+                        {
+                            Send(card);
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+
+                EditorGUILayout.Space(8);
                 EditorGUILayout.LabelField("自由入力");
                 EditorGUILayout.BeginHorizontal();
                 GUI.SetNextControlName(QRCardScannerSimulator.FreeInputControlName);
@@ -77,11 +97,11 @@ namespace CardScanner
 
             EditorGUILayout.Space(12);
             EditorGUILayout.LabelField($"送信履歴(直近{MaxHistory}件)", EditorStyles.boldLabel);
-            historyScroll = EditorGUILayout.BeginScrollView(historyScroll);
             for (int i = history.Count - 1; i >= 0; i--)
             {
                 EditorGUILayout.LabelField(history[i]);
             }
+
             EditorGUILayout.EndScrollView();
         }
 

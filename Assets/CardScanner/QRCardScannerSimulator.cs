@@ -12,18 +12,20 @@ namespace CardScanner
         // QRCardScannerWindow の自由入力欄と同じ名前を使う(フォーカス中は数字キーを無効化するため)
         internal const string FreeInputControlName = "QRCardScanner_FreeInput";
 
-        internal static readonly string[] PresetCards =
+        // [0] は TEST123、[1]以降が CARD:0001〜CARD:0030(カード枚数を増やす場合はここに追加する)
+        internal static readonly string[] PresetCards = BuildPresetCards();
+
+        private static string[] BuildPresetCards()
         {
-            "TEST123",
-            "CARD:0001",
-            "CARD:0002",
-            "CARD:0003",
-            "CARD:0004",
-            "CARD:0005",
-            "CARD:0006",
-            "CARD:0007",
-            "CARD:0008",
-        };
+            const int cardCount = 30;
+            var cards = new string[cardCount + 1];
+            cards[0] = "TEST123";
+            for (int i = 1; i <= cardCount; i++)
+            {
+                cards[i] = $"CARD:{i:D4}";
+            }
+            return cards;
+        }
 
         // このプロジェクトは Active Input Handling が "Input System Package" のため、
         // レガシーな UnityEngine.Input ではなく新しい Input System を使う。
