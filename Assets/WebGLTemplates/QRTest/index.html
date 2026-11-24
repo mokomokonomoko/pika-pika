@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja-jp">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>{{{ PRODUCT_NAME }}}</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+
+    /* 背面カメラの映像。画面全体に表示する */
+    #qr-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      background: #000;
+    }
+
+    /* フレーム解析用の作業用キャンバス。画面には出さない */
+    #qr-canvas {
+      display: none;
+    }
+
+    /* Unityの画面は下部のバナーとして重ねる(カメラ映像は隠さない) */
+    #unity-container {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 25vh;
+      z-index: 1;
+    }
+
+    #unity-canvas {
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: block;
+    }
+
+    #unity-warning {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 2;
+      color: #fff;
+      background: rgba(200, 0, 0, 0.8);
+      font-family: sans-serif;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <video id="qr-video" playsinline muted autoplay></video>
+  <canvas id="qr-canvas"></canvas>
+
+  <div id="unity-container">
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+  </div>
+  <div id="unity-warning"></div>
+
+  <script src="jsQR.js"></script>
+  <script src="Build/{{{ LOADER_FILENAME }}}"></script>
+  <script>
+    var buildUrl = "Build";
+    var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+    var config = {
+      dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+      frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+      codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#if MEMORY_FILENAME
+      memoryUrl: buildUrl + "/{{{ MEMORY_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+      symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+      productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+      productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+    };
+
+    var container = document.querySelector("#unity-container");
+    var canvas = document.querySelector("#unity-canvas");
+    var warningBanner = document.querySelector("#unity-warning");
+
+    function unityShowBanner(msg, type) {
+      function updateBannerVisibility() {
+        warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+      }
+      var div = document.createElement('div');
+      div.innerHTML = msg;
+      warningBanner.appendChild(div);
+      if (type == 'error') div.style = 'background: red; padding: 10px;';
+      else {
+        if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+        setTimeout(function () {
+          warningBanner.removeChild(div);
+          updateBannerVisibility();
+        }, 5000);
+      }
+      updateBannerVisibility();
+    }
+
+    var script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = () => {
+      createUnityInstance(canvas, config, (progress) => {
+        // 進捗バーは今回省略
+      }).then((unityInstance) => {
+        // .jslib から SendMessage するために、インスタンスをグローバルに保持しておく
+        window.unityInstance = unityInstance;
+      }).catch((message) => {
+        alert(message);
+      });
+    };
+    document.body.appendChild(script);
+  </script>
+
+  <script>
+    // --- QRコード読み取り(カメラ起動・スキャンループ) ---
+    // StartQRScanner() は Assets/Plugins/WebGL/QRScanner.jslib から呼ばれる
+    window.__qrScanner = {
+      video: document.getElementById("qr-video"),
+      canvas: document.getElementById("qr-canvas"),
+      ctx: document.getElementById("qr-canvas").getContext("2d", { willReadFrequently: true }),
+      started: false,
+      lastText: null,
+      lastSentAt: 0,
+      debounceMs: 3000,
+
+      start: function () {
+        if (this.started) return;
+        this.started = true;
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          unityShowBanner("このブラウザはカメラ(getUserMedia)に対応していません。", "error");
+          return;
+        }
+
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        }).then((stream) => {
+          this.video.srcObject = stream;
+          return this.video.play();
+        }).then(() => {
+          requestAnimationFrame(() => this.tick());
+        }).catch((err) => {
+          unityShowBanner("カメラを起動できませんでした: " + err.message, "error");
+        });
+      },
+
+      tick: function () {
+        if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+          var w = this.video.videoWidth;
+          var h = this.video.videoHeight;
+          if (w > 0 && h > 0) {
+            this.canvas.width = w;
+            this.canvas.height = h;
+            this.ctx.drawImage(this.video, 0, 0, w, h);
+            var imageData = this.ctx.getImageData(0, 0, w, h);
+            var result = jsQR(imageData.data, w, h);
+            if (result && result.data) {
+              this.onDetected(result.data);
+            }
+          }
+        }
+        requestAnimationFrame(() => this.tick());
+      },
+
+      onDetected: function (text) {
+        var now = performance.now();
+        var isSameAsLast = (text === this.lastText);
+        if (isSameAsLast && (now - this.lastSentAt) < this.debounceMs) {
+          return;
+        }
+        this.lastText = text;
+        this.lastSentAt = now;
+        if (window.unityInstance) {
+          window.unityInstance.SendMessage("QRManager", "OnQRCodeScanned", text);
+        }
+      }
+    };
+  </script>
+</body>
+</html>
