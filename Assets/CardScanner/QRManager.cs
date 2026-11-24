@@ -13,6 +13,9 @@ namespace CardScanner
         // Rect.x/y: 左上の位置、Rect.width/height: どちらも画面幅に対する割合。
         [SerializeField] private Rect cameraRect = new Rect(0.3f, 0.5f, 0.4f, 0.4f);
 
+        // エディタ専用のカメラ表示(QREditorWebcamView)などが、スマホと同じ枠位置を参照するために使う
+        public Rect CameraRect => cameraRect;
+
         private void Start()
         {
             QRScannerBridge.StartScanner();
