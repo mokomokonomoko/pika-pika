@@ -1,9 +1,10 @@
 using UnityEngine;
-using ZXing;
 
 namespace CardScanner
 {
 #if UNITY_EDITOR
+    using ZXing;
+
     // Unityエディタの Play モード専用。QREditorWebcamView が表示しているMacカメラの映像
     // (枠に表示されている範囲)を一定間隔でZXing.Netに渡してQRコードを読み取る。
     // 検出した文字列は、スマホ側(JS)と同じ公開メソッド QRManager.OnQRCodeScanned を直接呼ぶ。
