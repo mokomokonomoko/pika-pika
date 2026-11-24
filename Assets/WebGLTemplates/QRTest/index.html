@@ -15,15 +15,25 @@
       overflow: hidden;
     }
 
-    /* 背面カメラの映像。画面全体に表示する */
-    #qr-video {
+    /* カメラ映像を表示する枠。位置・大きさはJS(applyRect)で動的に設定する */
+    #qr-frame {
       position: fixed;
+      overflow: hidden;
+      box-sizing: border-box;
+      border: 3px solid #ffffff;
+      border-radius: 16px;
+      background: #000;
+      z-index: 0;
+    }
+
+    /* 枠の中にcoverで表示する(縦横比を保ったまま枠に合わせて切り取る) */
+    #qr-video {
+      position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
-      z-index: 0;
       background: #000;
     }
 
@@ -63,7 +73,9 @@
   </style>
 </head>
 <body>
-  <video id="qr-video" playsinline muted autoplay></video>
+  <div id="qr-frame">
+    <video id="qr-video" playsinline muted autoplay></video>
+  </div>
   <canvas id="qr-canvas"></canvas>
 
   <div id="unity-container">
@@ -131,15 +143,47 @@
 
   <script>
     // --- QRコード読み取り(カメラ起動・スキャンループ) ---
-    // StartQRScanner() は Assets/Plugins/WebGL/QRScanner.jslib から呼ばれる
+    // StartQRScanner() / SetQRCameraRect() は Assets/Plugins/WebGL/QRScanner.jslib から呼ばれる
     window.__qrScanner = {
       video: document.getElementById("qr-video"),
       canvas: document.getElementById("qr-canvas"),
       ctx: document.getElementById("qr-canvas").getContext("2d", { willReadFrequently: true }),
+      frameEl: document.getElementById("qr-frame"),
       started: false,
+      // x, y: 画面の幅・高さに対する左上の割合(位置)
+      // width, height: どちらも画面の「幅」に対する割合(サイズ)。
+      // 同じ値にすると、画面の向きが変わっても常に正方形になる。
+      rect: { x: 0.3, y: 0.5, width: 0.4, height: 0.4 },
+      framePx: null,
+      cropPx: null,
       lastText: null,
       lastSentAt: 0,
       debounceMs: 3000,
+
+      init: function () {
+        this.applyRect();
+        window.addEventListener("resize", () => this.applyRect());
+        window.addEventListener("orientationchange", () => this.applyRect());
+      },
+
+      // Unity(C#)側からの SetCameraRect(x, y, width, height) を受け取る
+      setRect: function (x, y, width, height) {
+        this.rect = { x: x, y: y, width: width, height: height };
+        this.applyRect();
+      },
+
+      // rect(割合)から、枠の実際のpx位置・大きさを計算してCSSに反映する
+      applyRect: function () {
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var widthPx = this.rect.width * vw;
+        var heightPx = this.rect.height * vw; // 幅基準にして正方形を保つ
+        this.frameEl.style.left = (this.rect.x * vw) + "px";
+        this.frameEl.style.top = (this.rect.y * vh) + "px";
+        this.frameEl.style.width = widthPx + "px";
+        this.frameEl.style.height = heightPx + "px";
+        this.framePx = { width: widthPx, height: heightPx };
+      },
 
       start: function () {
         if (this.started) return;
@@ -163,16 +207,46 @@
         });
       },
 
+      // 枠(object-fit: cover)で実際に見えている範囲と同じ切り出し矩形を、
+      // 映像本来の解像度(videoWidth/videoHeight)の座標系で計算する
+      updateCropForFrame: function () {
+        var w = this.video.videoWidth;
+        var h = this.video.videoHeight;
+        if (!w || !h || !this.framePx || this.framePx.width <= 0 || this.framePx.height <= 0) {
+          this.cropPx = null;
+          return;
+        }
+        var boxAspect = this.framePx.width / this.framePx.height;
+        var videoAspect = w / h;
+        var cropW, cropH, cropX, cropY;
+        if (videoAspect > boxAspect) {
+          cropH = h;
+          cropW = h * boxAspect;
+          cropX = (w - cropW) / 2;
+          cropY = 0;
+        } else {
+          cropW = w;
+          cropH = w / boxAspect;
+          cropX = 0;
+          cropY = (h - cropH) / 2;
+        }
+        this.cropPx = { x: cropX, y: cropY, width: cropW, height: cropH };
+      },
+
       tick: function () {
         if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
-          var w = this.video.videoWidth;
-          var h = this.video.videoHeight;
-          if (w > 0 && h > 0) {
-            this.canvas.width = w;
-            this.canvas.height = h;
-            this.ctx.drawImage(this.video, 0, 0, w, h);
-            var imageData = this.ctx.getImageData(0, 0, w, h);
-            var result = jsQR(imageData.data, w, h);
+          this.updateCropForFrame();
+          var crop = this.cropPx;
+          if (crop && crop.width > 0 && crop.height > 0) {
+            this.canvas.width = crop.width;
+            this.canvas.height = crop.height;
+            this.ctx.drawImage(
+              this.video,
+              crop.x, crop.y, crop.width, crop.height,
+              0, 0, crop.width, crop.height
+            );
+            var imageData = this.ctx.getImageData(0, 0, crop.width, crop.height);
+            var result = jsQR(imageData.data, crop.width, crop.height);
             if (result && result.data) {
               this.onDetected(result.data);
             }
@@ -194,6 +268,7 @@
         }
       }
     };
+    window.__qrScanner.init();
   </script>
 </body>
 </html>
