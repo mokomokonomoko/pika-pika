@@ -8,7 +8,7 @@ namespace AnimalGyaruMix
 {
     public sealed class GyaruBuilder : MonoBehaviour
     {
-        public const int SlotCount = 6;
+        public static readonly int SlotCount = Enum.GetValues(typeof(CardSlot)).Length;
         public const int AlbumLimit = 8;
         public const int NameLimit = 20;
         private const string SaveKey = "AnimalGyaruMix.Save.v1";
@@ -47,7 +47,6 @@ namespace AnimalGyaruMix
 
             save = Load();
             discovered.UnionWith(save.discovered.Where(cards.ContainsKey));
-            Array.Copy(ResolveLook(save.draft), equipped, SlotCount);
             scanner.CodeScanned += ReceiveScan;
             scanner.CameraStatus += ReceiveCameraStatus;
             scanner.PhotoReceived += ReceivePhoto;
@@ -94,8 +93,8 @@ namespace AnimalGyaruMix
             equipped[(int)card.Slot] = card;
             bool isNew = discovered.Add(card.Id);
             save.fullLook |= FilledCount == SlotCount;
-            save.threeAnimals |= equipped.Take(3).Where(part => part != null)
-                .Select(part => part.Animal).Where(animal => !string.IsNullOrEmpty(animal)).Distinct().Count() == 3;
+            save.threeAnimals |= equipped.Where(part => part != null && !string.IsNullOrWhiteSpace(part.Animal))
+                .Select(part => part.Animal.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() >= 3;
 
             Persist();
             RefreshLook();
@@ -241,7 +240,6 @@ namespace AnimalGyaruMix
 
         private void Persist()
         {
-            save.draft = CurrentIds();
             save.discovered = discovered.OrderBy(id => id).ToList();
             PlayerPrefs.SetString(SaveKey, JsonUtility.ToJson(save));
             PlayerPrefs.Save();
@@ -290,7 +288,6 @@ namespace AnimalGyaruMix
         [Serializable]
         private sealed class SaveData
         {
-            public string[] draft;
             public List<string> discovered = new();
             public List<SavedLook> album = new();
             public bool fullLook;

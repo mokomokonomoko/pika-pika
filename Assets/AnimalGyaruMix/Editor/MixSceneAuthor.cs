@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using CardScanner;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -30,7 +30,7 @@ namespace AnimalGyaruMix
             var previous = SceneManager.GetActiveScene();
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
             SceneManager.SetActiveScene(scene);
-            var catalog = CreateCatalog();
+            var catalog = LoadCatalog();
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
             var camera = new GameObject("Main Camera").AddComponent<Camera>();
@@ -71,17 +71,20 @@ namespace AnimalGyaruMix
 
             var builder = Page("Builder Panel");
             var character = Preview(builder, "Character Preview", .04f, .478f, .96f, .962f, Lavender, false);
-            var count = Label(builder, "Filled Slot Count", "0 / 6 equipped", .10f, .451f, .90f, .499f, 40, Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+            var count = Label(builder, "Filled Slot Count", $"0 / {GyaruBuilder.SlotCount} equipped", .10f, .451f, .90f, .499f, 40, Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
             var feedback = Label(builder, "Scan Feedback", "Scan a card to style your gyaru.", 0, .385f, 1, .454f, 37, Ink);
             var rarityEffect = Label(builder, "Rarity Effect", "", .12f, .841f, .88f, .939f, 58, Accent, TextAnchor.MiddleCenter, FontStyle.Bold);
             var slots = Rect(builder, "Equipment Slots", 0, .157f, 1, .384f);
-            var slotLabels = new Text[6];
-            string[] slotNames = { "Ears", "Tail", "Markings", "Top", "Bottom", "Accessory" };
+            string[] slotNames = Enum.GetNames(typeof(CardSlot));
+            var slotLabels = new Text[slotNames.Length];
+            int rowsPerColumn = (slotNames.Length + 1) / 2;
             for (int i = 0; i < slotNames.Length; i++)
             {
-                float x = i < 3 ? 0 : .512f;
-                float y = (2 - i % 3) / 3f;
-                var tile = Block(slots, slotNames[i] + " Slot", x, y + .027f, x + .488f, y + .31f, i < 3 ? Lavender : Panel);
+                bool leftColumn = i < rowsPerColumn;
+                float x = leftColumn ? 0 : .512f;
+                float y = (rowsPerColumn - 1 - i % rowsPerColumn) / (float)rowsPerColumn;
+                var tile = Block(slots, slotNames[i] + " Slot", x, y + .02f, x + .488f,
+                    y + 1f / rowsPerColumn - .012f, leftColumn ? Lavender : Panel);
                 Label(tile, "Slot Label", slotNames[i], .055f, .47f, .96f, .93f, 35, Accent, TextAnchor.MiddleLeft, FontStyle.Bold);
                 slotLabels[i] = Label(tile, "Equipped Name", "Empty", .055f, .040f, .96f, .54f, 42, Ink, TextAnchor.MiddleLeft);
             }
@@ -91,7 +94,7 @@ namespace AnimalGyaruMix
 
             var book = Page("Card Book Panel");
             Label(book, "Title", "Card Book", 0, .862f, 1, .99f, 72, Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
-            var bookHeading = Label(book, "Discovered Count", "0 / 30 discovered", 0, .788f, 1, .862f, 46, Accent, TextAnchor.MiddleLeft);
+            var bookHeading = Label(book, "Discovered Count", $"0 / {catalog.Length} discovered", 0, .788f, 1, .862f, 46, Accent, TextAnchor.MiddleLeft);
             var filters = new[]
             {
                 Btn(book, "Common Filter", "Common", 0, .694f, .32f, .774f, Accent),
@@ -181,63 +184,16 @@ namespace AnimalGyaruMix
                 EditorSceneManager.CloseScene(previous, true);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true), new EditorBuildSettingsScene("Assets/Scenes/SampleScene.unity", false) };
             AssetDatabase.SaveAssets();
-            Debug.Log($"Animal Gyaru Mix authored with {catalog.Count} cards.");
+            Debug.Log($"Animal Gyaru Mix authored with {catalog.Length} cards.");
         }
 
-        private static List<CardDefinition> CreateCatalog()
+        private static CardDefinition[] LoadCatalog()
         {
-            const string art = Root + "/Art";
-            foreach (string file in Directory.GetFiles(art, "*.png"))
-            {
-                string path = file.Replace('\\', '/');
-                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-                importer.textureType = TextureImporterType.Sprite;
-                importer.spriteImportMode = SpriteImportMode.Single;
-                var settings = new TextureImporterSettings();
-                importer.ReadTextureSettings(settings);
-                settings.spriteMeshType = SpriteMeshType.FullRect;
-                importer.SetTextureSettings(settings);
-                importer.alphaIsTransparency = true;
-                importer.mipmapEnabled = false;
-                importer.textureCompression = TextureImporterCompression.Uncompressed;
-                importer.SaveAndReimport();
-            }
-
-            const string output = Root + "/Cards";
-            if (!AssetDatabase.IsValidFolder(output))
-                AssetDatabase.CreateFolder(Root, "Cards");
-
-            string[] entries = {
-                "Ears0|Cat Ears|Common|Cat", "Ears1|Bunny Ears|Common|Bunny", "Tail0|Fox Tail|Rare|Fox",
-                "Top0|Sequin Top|Rare", "Bottom0|Glitter Skirt|Rare", "Accessory0|Rhinestone Shades|Rare",
-                "Markings0|Tiger Stripes|SuperRare|White Tiger", "Ears2|Fox Ears|Rare|Fox",
-                "Ears3|White Tiger Ears|SuperRare|White Tiger", "Ears4|Axolotl Gills|SuperRare|Axolotl",
-                "Tail1|Bunny Tail|Common|Bunny", "Tail2|Leopard Tail|Rare|Leopard", "Tail3|White Tiger Tail|SuperRare|White Tiger", "Tail4|Cat Tail|Common|Cat",
-                "Markings1|Cat Whiskers|Common|Cat", "Markings2|Leopard Spots|Rare|Leopard", "Markings3|Fox Cheeks|Rare|Fox", "Markings4|Axolotl Stars|SuperRare|Axolotl",
-                "Top1|Leopard Crop Top|Rare", "Top2|Lavender Cardigan|Common", "Top3|Midnight Jacket|Rare", "Top4|Blush Cami|Common",
-                "Bottom1|Denim Flares|Common", "Bottom2|Violet Pleats|Common", "Bottom3|Rose Mini|Common", "Bottom4|Moon Trousers|SuperRare",
-                "Accessory1|Star Choker|Common", "Accessory2|Heart Hair Clip|Common", "Accessory3|Pearl Pendant|Rare", "Accessory4|Golden Bow|SuperRare"
-            };
-            var catalog = new List<CardDefinition>(entries.Length);
-            for (int i = 0; i < entries.Length; i++)
-            {
-                string[] info = entries[i].Split('|');
-                string id = $"CARD:{i + 1:0000}";
-                var card = ScriptableObject.CreateInstance<CardDefinition>();
-                Set(card, data =>
-                {
-                    data.FindProperty("cardId").stringValue = id;
-                    data.FindProperty("displayName").stringValue = info[1];
-                    data.FindProperty("slot").enumValueIndex = (int)Enum.Parse<CardSlot>(info[0][..^1]);
-                    data.FindProperty("rarity").enumValueIndex = (int)Enum.Parse<CardRarity>(info[2]);
-                    data.FindProperty("animal").stringValue = info.Length > 3 ? info[3] : "";
-                    data.FindProperty("sprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>($"{art}/{info[0]}.png");
-                });
-                string path = $"{output}/{i + 1:00} {info[1]}.asset";
-                AssetDatabase.CreateAsset(card, path);
-                catalog.Add(card);
-            }
-            return catalog;
+            return AssetDatabase.FindAssets("t:CardDefinition", new[] { Root + "/Cards" })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<CardDefinition>)
+                .OrderBy(card => card.Id, StringComparer.Ordinal)
+                .ToArray();
         }
 
         private static CharacterPreview Preview(Transform parent, string name, float x1, float y1, float x2, float y2, Color color, bool photo)
@@ -265,18 +221,21 @@ namespace AnimalGyaruMix
                 return img;
             }
             var tail = Layer("Tail");
-            var ears = Layer("Ears");
             var body = Layer("Base Body");
-            body.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(Root + "/Art/Base.png");
-            var top = Layer("Top");
+            body.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(Root + "/Art/Body.png");
+            var shoes = Layer("Shoes");
             var bottom = Layer("Bottom");
-            var marks = Layer("Markings");
+            var top = Layer("Top");
+            var hair = Layer("Hair");
+            var face = Layer("Face");
+            var ears = Layer("Ears");
             var accessory = Layer("Accessory");
-            Image[] slots = { ears, tail, marks, top, bottom, accessory };
+            Image[] slots = { hair, face, ears, tail, top, bottom, accessory, shoes };
             foreach (Image slot in slots)
                 slot.enabled = false;
             Set(preview, so =>
             {
+                so.FindProperty("baseBody").objectReferenceValue = body;
                 SetArray(so, "slotImages", slots);
                 so.FindProperty("photoBackground").objectReferenceValue = backdrop;
             });
