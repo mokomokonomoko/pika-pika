@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ja-jp">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>{{{ PRODUCT_NAME }}}</title>
   <style>
     html, body {
@@ -23,7 +23,8 @@
       border: 3px solid #ffffff;
       border-radius: 16px;
       background: #000;
-      z-index: 0;
+      z-index: 3;
+      pointer-events: none;
     }
 
     /* 枠の中にcoverで表示する(縦横比を保ったまま枠に合わせて切り取る) */
@@ -37,20 +38,30 @@
       background: #000;
     }
 
-    /* フレーム解析用の作業用キャンバス。画面には出さない */
+    #qr-portrait {
+      position: absolute;
+      inset: 5% 0;
+      width: 100%;
+      height: 90%;
+      object-fit: contain;
+    }
+
+    /* The scan buffer is never displayed. */
     #qr-canvas {
       display: none;
     }
 
-    /* Unityの画面は下部のバナーとして重ねる(カメラ映像は隠さない) */
+    /* The game uses the entire viewport. The original scanner demo uses a banner. */
     #unity-container {
       position: fixed;
       left: 0;
       bottom: 0;
       width: 100%;
-      height: 25vh;
+      height: 100%;
       z-index: 1;
     }
+
+.scanner-demo #unity-container { height: 25vh; }
 
     #unity-canvas {
       width: 100%;
@@ -73,8 +84,9 @@
   </style>
 </head>
 <body>
-  <div id="qr-frame">
+  <div id="qr-frame" hidden>
     <video id="qr-video" playsinline muted autoplay></video>
+    <img id="qr-portrait" alt="" hidden>
   </div>
   <canvas id="qr-canvas"></canvas>
 
@@ -84,7 +96,7 @@
   <div id="unity-warning"></div>
 
   <script src="jsQR.js"></script>
-  <script src="Build/{{{ LOADER_FILENAME }}}"></script>
+  <script src="qr-camera.js"></script>
   <script>
     var buildUrl = "Build";
     var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
@@ -98,6 +110,7 @@
 #if SYMBOLS_FILENAME
       symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
 #endif
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
       streamingAssetsUrl: "StreamingAssets",
       companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
       productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
@@ -113,7 +126,7 @@
         warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
       }
       var div = document.createElement('div');
-      div.innerHTML = msg;
+      div.textContent = msg;
       warningBanner.appendChild(div);
       if (type == 'error') div.style = 'background: red; padding: 10px;';
       else {
@@ -141,134 +154,5 @@
     document.body.appendChild(script);
   </script>
 
-  <script>
-    // --- QRコード読み取り(カメラ起動・スキャンループ) ---
-    // StartQRScanner() / SetQRCameraRect() は Assets/Plugins/WebGL/QRScanner.jslib から呼ばれる
-    window.__qrScanner = {
-      video: document.getElementById("qr-video"),
-      canvas: document.getElementById("qr-canvas"),
-      ctx: document.getElementById("qr-canvas").getContext("2d", { willReadFrequently: true }),
-      frameEl: document.getElementById("qr-frame"),
-      started: false,
-      // x, y: 画面の幅・高さに対する左上の割合(位置)
-      // width, height: どちらも画面の「幅」に対する割合(サイズ)。
-      // 同じ値にすると、画面の向きが変わっても常に正方形になる。
-      rect: { x: 0.3, y: 0.5, width: 0.4, height: 0.4 },
-      framePx: null,
-      cropPx: null,
-      lastText: null,
-      lastSentAt: 0,
-      debounceMs: 3000,
-
-      init: function () {
-        this.applyRect();
-        window.addEventListener("resize", () => this.applyRect());
-        window.addEventListener("orientationchange", () => this.applyRect());
-      },
-
-      // Unity(C#)側からの SetCameraRect(x, y, width, height) を受け取る
-      setRect: function (x, y, width, height) {
-        this.rect = { x: x, y: y, width: width, height: height };
-        this.applyRect();
-      },
-
-      // rect(割合)から、枠の実際のpx位置・大きさを計算してCSSに反映する
-      applyRect: function () {
-        var vw = window.innerWidth;
-        var vh = window.innerHeight;
-        var widthPx = this.rect.width * vw;
-        var heightPx = this.rect.height * vw; // 幅基準にして正方形を保つ
-        this.frameEl.style.left = (this.rect.x * vw) + "px";
-        this.frameEl.style.top = (this.rect.y * vh) + "px";
-        this.frameEl.style.width = widthPx + "px";
-        this.frameEl.style.height = heightPx + "px";
-        this.framePx = { width: widthPx, height: heightPx };
-      },
-
-      start: function () {
-        if (this.started) return;
-        this.started = true;
-
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          unityShowBanner("このブラウザはカメラ(getUserMedia)に対応していません。", "error");
-          return;
-        }
-
-        navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-          audio: false
-        }).then((stream) => {
-          this.video.srcObject = stream;
-          return this.video.play();
-        }).then(() => {
-          requestAnimationFrame(() => this.tick());
-        }).catch((err) => {
-          unityShowBanner("カメラを起動できませんでした: " + err.message, "error");
-        });
-      },
-
-      // 枠(object-fit: cover)で実際に見えている範囲と同じ切り出し矩形を、
-      // 映像本来の解像度(videoWidth/videoHeight)の座標系で計算する
-      updateCropForFrame: function () {
-        var w = this.video.videoWidth;
-        var h = this.video.videoHeight;
-        if (!w || !h || !this.framePx || this.framePx.width <= 0 || this.framePx.height <= 0) {
-          this.cropPx = null;
-          return;
-        }
-        var boxAspect = this.framePx.width / this.framePx.height;
-        var videoAspect = w / h;
-        var cropW, cropH, cropX, cropY;
-        if (videoAspect > boxAspect) {
-          cropH = h;
-          cropW = h * boxAspect;
-          cropX = (w - cropW) / 2;
-          cropY = 0;
-        } else {
-          cropW = w;
-          cropH = w / boxAspect;
-          cropX = 0;
-          cropY = (h - cropH) / 2;
-        }
-        this.cropPx = { x: cropX, y: cropY, width: cropW, height: cropH };
-      },
-
-      tick: function () {
-        if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
-          this.updateCropForFrame();
-          var crop = this.cropPx;
-          if (crop && crop.width > 0 && crop.height > 0) {
-            this.canvas.width = crop.width;
-            this.canvas.height = crop.height;
-            this.ctx.drawImage(
-              this.video,
-              crop.x, crop.y, crop.width, crop.height,
-              0, 0, crop.width, crop.height
-            );
-            var imageData = this.ctx.getImageData(0, 0, crop.width, crop.height);
-            var result = jsQR(imageData.data, crop.width, crop.height);
-            if (result && result.data) {
-              this.onDetected(result.data);
-            }
-          }
-        }
-        requestAnimationFrame(() => this.tick());
-      },
-
-      onDetected: function (text) {
-        var now = performance.now();
-        var isSameAsLast = (text === this.lastText);
-        if (isSameAsLast && (now - this.lastSentAt) < this.debounceMs) {
-          return;
-        }
-        this.lastText = text;
-        this.lastSentAt = now;
-        if (window.unityInstance) {
-          window.unityInstance.SendMessage("QRManager", "OnQRCodeScanned", text);
-        }
-      }
-    };
-    window.__qrScanner.init();
-  </script>
 </body>
 </html>

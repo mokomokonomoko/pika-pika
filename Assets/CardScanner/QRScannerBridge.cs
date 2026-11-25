@@ -11,7 +11,37 @@ namespace CardScanner
 
         [DllImport("__Internal")]
         private static extern void SetQRCameraRect(float x, float y, float width, float height);
+
+        [DllImport("__Internal")]
+        private static extern void SetQRCameraMode(int mode);
+
+        [DllImport("__Internal")]
+        private static extern void CaptureQRCameraPhoto();
+
+        [DllImport("__Internal")]
+        private static extern void SetQRPortraitOverlay(string png);
 #endif
+
+        public static void SetPortraitOverlay(string png)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            SetQRPortraitOverlay(png);
+#endif
+        }
+
+        public static void SetMode(int mode)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            SetQRCameraMode(mode);
+#endif
+        }
+
+        public static void CapturePhoto()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            CaptureQRCameraPhoto();
+#endif
+        }
 
         public static void StartScanner()
         {
