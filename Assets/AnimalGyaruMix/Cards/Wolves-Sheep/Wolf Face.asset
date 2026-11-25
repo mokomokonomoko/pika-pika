@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70865b1abac868d1a4f8ed3a3663494d, type: 3}
   m_Name: Wolf Face
   m_EditorClassIdentifier: Assembly-CSharp::AnimalGyaruMix.CardDefinition
-  cardId: CARD:0013
+  cardId: CARD:0102
   displayName: Wolf Face
   slot: 1
   rarity: 0

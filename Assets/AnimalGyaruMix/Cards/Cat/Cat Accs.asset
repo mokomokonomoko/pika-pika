@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70865b1abac868d1a4f8ed3a3663494d, type: 3}
   m_Name: Cat Accs
   m_EditorClassIdentifier: Assembly-CSharp::AnimalGyaruMix.CardDefinition
-  cardId: CARD:0001
+  cardId: CARD:0204
   displayName: Ribbon
   slot: 6
   rarity: 0

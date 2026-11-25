@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70865b1abac868d1a4f8ed3a3663494d, type: 3}
   m_Name: Wolf Hair
   m_EditorClassIdentifier: Assembly-CSharp::AnimalGyaruMix.CardDefinition
-  cardId: CARD:0014
+  cardId: CARD:0101
   displayName: Wolf Hair
   slot: 0
-  rarity: 0
+  rarity: 1
   animal: 'Wolf '
   sprite: {fileID: 21300000, guid: e67a1bc9e635a0645b18b895da4657f7, type: 3}
