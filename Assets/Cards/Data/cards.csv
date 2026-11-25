@@ -1,0 +1,23 @@
+﻿cardId,set,slot,slotJa,displayName,image(s),layer(s),order(s)
+CARD:0101,Ganimals,Hair,ヘア,Ganimals Hair,0101_hair.png,HairFront,80
+CARD:0102,Ganimals,Face,フェイス,Ganimals Face,0102_face.png,Face,70
+CARD:0103,Ganimals,Ears,耳,Ganimals Ears,0103_ears.png,Ears,90
+CARD:0104,Ganimals,Accessory,アクセ,Ganimals Accessory,0104_accessory.png,Accessory,100
+CARD:0105,Ganimals,Top,トップス,Ganimals Top,0105_top.png,Top,60
+CARD:0106,Ganimals,Bottom,ボトムス,Ganimals Bottom,0106_bottom.png,Bottom,50
+CARD:0107,Ganimals,Shoes,シューズ,Ganimals Shoes,0107_shoes.png,Shoes,40
+CARD:0108,Ganimals,Tail,しっぽ,Ganimals Tail,0108_tail.png,Tail,10
+CARD:0201,Himeganimal,Hair,ヘア,Himeganimal Hair,0201_hair_front.png + 0201_hair_back.png,HairFront + HairBack,80 + 20
+CARD:0202,Himeganimal,Face,フェイス,Himeganimal Face,0202_face.png,Face,70
+CARD:0203,Himeganimal,Ears,耳,Himeganimal Ears,0203_ears.png,Ears,90
+CARD:0204,Himeganimal,Accessory,アクセ,Himeganimal Accessory,0204_accessory.png,Accessory,100
+CARD:0205,Himeganimal,Top,トップス,Himeganimal Top,0205_top.png,Top,60
+CARD:0206,Himeganimal,Bottom,ボトムス,Himeganimal Bottom,0206_bottom.png,Bottom,50
+CARD:0207,Himeganimal,Shoes,シューズ,Himeganimal Shoes,0207_shoes.png,Shoes,40
+CARD:0208,Himeganimal,Tail,しっぽ,Himeganimal Tail,0208_tail.png,Tail,10
+CARD:0301,Set03,Hair,ヘア,Set03 Hair,0301_hair.png,HairFront,80
+CARD:0302,Set03,Face,フェイス,Set03 Face,0302_face.png,Face,70
+CARD:0304,Set03,Accessory,アクセ,Set03 Accessory,0304_accessory.png,Accessory,100
+CARD:0305,Set03,Top,トップス,Set03 Top,0305_top.png,Top,60
+CARD:0306,Set03,Bottom,ボトムス,Set03 Bottom,0306_bottom.png,Bottom,50
+CARD:0307,Set03,Shoes,シューズ,Set03 Shoes,0307_shoes.png,Shoes,40

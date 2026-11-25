@@ -1,0 +1,423 @@
+{
+  "version": 1,
+  "note": "全画像は 2048x2048 の同じキャンバスで素体と位置合わせ済み。重ねるだけで正しい位置になる。order が小さいほど奥に描画。displayName は仮の名前。",
+  "canvasSize": 2048,
+  "body": {
+    "image": "Assets/UI/character/body_base.png",
+    "layer": "Body",
+    "order": 30
+  },
+  "layerOrder": {
+    "Tail": 10,
+    "HairBack": 20,
+    "Body": 30,
+    "Shoes": 40,
+    "Bottom": 50,
+    "Top": 60,
+    "Face": 70,
+    "HairFront": 80,
+    "Ears": 90,
+    "Accessory": 100
+  },
+  "sets": [
+    {
+      "id": "ganimals",
+      "name": "Ganimals",
+      "cardIds": [
+        "CARD:0101",
+        "CARD:0102",
+        "CARD:0103",
+        "CARD:0104",
+        "CARD:0105",
+        "CARD:0106",
+        "CARD:0107",
+        "CARD:0108"
+      ]
+    },
+    {
+      "id": "himeganimal",
+      "name": "Himeganimal",
+      "cardIds": [
+        "CARD:0201",
+        "CARD:0202",
+        "CARD:0203",
+        "CARD:0204",
+        "CARD:0205",
+        "CARD:0206",
+        "CARD:0207",
+        "CARD:0208"
+      ]
+    },
+    {
+      "id": "set03",
+      "name": "Set03",
+      "cardIds": [
+        "CARD:0301",
+        "CARD:0302",
+        "CARD:0304",
+        "CARD:0305",
+        "CARD:0306",
+        "CARD:0307"
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "cardId": "CARD:0101",
+      "number": 101,
+      "set": "ganimals",
+      "setName": "Ganimals",
+      "slot": "Hair",
+      "slotJa": "ヘア",
+      "displayName": "Ganimals Hair",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Ganimals/0101_hair.png",
+          "layer": "HairFront",
+          "order": 80
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0102",
+      "number": 102,
+      "set": "ganimals",
+      "setName": "Ganimals",
+      "slot": "Face",
+      "slotJa": "フェイス",
+      "displayName": "Ganimals Face",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Ganimals/0102_face.png",
+          "layer": "Face",
+          "order": 70
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0103",
+      "number": 103,
+      "set": "ganimals",
+      "setName": "Ganimals",
+      "slot": "Ears",
+      "slotJa": "耳",
+      "displayName": "Ganimals Ears",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Ganimals/0103_ears.png",
+          "layer": "Ears",
+          "order": 90
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0104",
+      "number": 104,
+      "set": "ganimals",
+      "setName": "Ganimals",
+      "slot": "Accessory",
+      "slotJa": "アクセ",
+      "displayName": "Ganimals Accessory",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Ganimals/0104_accessory.png",
+          "layer": "Accessory",
+          "order": 100
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0105",
+      "number": 105,
+      "set": "ganimals",
+      "setName": "Ganimals",
+      "slot": "Top",
+      "slotJa": "トップス",
+      "displayName": "Ganimals Top",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Ganimals/0105_top.png",
+          "layer": "Top",
+          "order": 60
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0106",
+      "number": 106,
+      "set": "ganimals",
+      "setName": "Ganimals",
+      "slot": "Bottom",
+      "slotJa": "ボトムス",
+      "displayName": "Ganimals Bottom",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Ganimals/0106_bottom.png",
+          "layer": "Bottom",
+          "order": 50
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0107",
+      "number": 107,
+      "set": "ganimals",
+      "setName": "Ganimals",
+      "slot": "Shoes",
+      "slotJa": "シューズ",
+      "displayName": "Ganimals Shoes",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Ganimals/0107_shoes.png",
+          "layer": "Shoes",
+          "order": 40
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0108",
+      "number": 108,
+      "set": "ganimals",
+      "setName": "Ganimals",
+      "slot": "Tail",
+      "slotJa": "しっぽ",
+      "displayName": "Ganimals Tail",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Ganimals/0108_tail.png",
+          "layer": "Tail",
+          "order": 10
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0201",
+      "number": 201,
+      "set": "himeganimal",
+      "setName": "Himeganimal",
+      "slot": "Hair",
+      "slotJa": "ヘア",
+      "displayName": "Himeganimal Hair",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Himeganimal/0201_hair_front.png",
+          "layer": "HairFront",
+          "order": 80
+        },
+        {
+          "image": "Assets/Cards/Parts/Himeganimal/0201_hair_back.png",
+          "layer": "HairBack",
+          "order": 20
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0202",
+      "number": 202,
+      "set": "himeganimal",
+      "setName": "Himeganimal",
+      "slot": "Face",
+      "slotJa": "フェイス",
+      "displayName": "Himeganimal Face",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Himeganimal/0202_face.png",
+          "layer": "Face",
+          "order": 70
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0203",
+      "number": 203,
+      "set": "himeganimal",
+      "setName": "Himeganimal",
+      "slot": "Ears",
+      "slotJa": "耳",
+      "displayName": "Himeganimal Ears",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Himeganimal/0203_ears.png",
+          "layer": "Ears",
+          "order": 90
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0204",
+      "number": 204,
+      "set": "himeganimal",
+      "setName": "Himeganimal",
+      "slot": "Accessory",
+      "slotJa": "アクセ",
+      "displayName": "Himeganimal Accessory",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Himeganimal/0204_accessory.png",
+          "layer": "Accessory",
+          "order": 100
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0205",
+      "number": 205,
+      "set": "himeganimal",
+      "setName": "Himeganimal",
+      "slot": "Top",
+      "slotJa": "トップス",
+      "displayName": "Himeganimal Top",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Himeganimal/0205_top.png",
+          "layer": "Top",
+          "order": 60
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0206",
+      "number": 206,
+      "set": "himeganimal",
+      "setName": "Himeganimal",
+      "slot": "Bottom",
+      "slotJa": "ボトムス",
+      "displayName": "Himeganimal Bottom",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Himeganimal/0206_bottom.png",
+          "layer": "Bottom",
+          "order": 50
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0207",
+      "number": 207,
+      "set": "himeganimal",
+      "setName": "Himeganimal",
+      "slot": "Shoes",
+      "slotJa": "シューズ",
+      "displayName": "Himeganimal Shoes",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Himeganimal/0207_shoes.png",
+          "layer": "Shoes",
+          "order": 40
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0208",
+      "number": 208,
+      "set": "himeganimal",
+      "setName": "Himeganimal",
+      "slot": "Tail",
+      "slotJa": "しっぽ",
+      "displayName": "Himeganimal Tail",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Himeganimal/0208_tail.png",
+          "layer": "Tail",
+          "order": 10
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0301",
+      "number": 301,
+      "set": "set03",
+      "setName": "Set03",
+      "slot": "Hair",
+      "slotJa": "ヘア",
+      "displayName": "Set03 Hair",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Set03/0301_hair.png",
+          "layer": "HairFront",
+          "order": 80
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0302",
+      "number": 302,
+      "set": "set03",
+      "setName": "Set03",
+      "slot": "Face",
+      "slotJa": "フェイス",
+      "displayName": "Set03 Face",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Set03/0302_face.png",
+          "layer": "Face",
+          "order": 70
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0304",
+      "number": 304,
+      "set": "set03",
+      "setName": "Set03",
+      "slot": "Accessory",
+      "slotJa": "アクセ",
+      "displayName": "Set03 Accessory",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Set03/0304_accessory.png",
+          "layer": "Accessory",
+          "order": 100
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0305",
+      "number": 305,
+      "set": "set03",
+      "setName": "Set03",
+      "slot": "Top",
+      "slotJa": "トップス",
+      "displayName": "Set03 Top",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Set03/0305_top.png",
+          "layer": "Top",
+          "order": 60
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0306",
+      "number": 306,
+      "set": "set03",
+      "setName": "Set03",
+      "slot": "Bottom",
+      "slotJa": "ボトムス",
+      "displayName": "Set03 Bottom",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Set03/0306_bottom.png",
+          "layer": "Bottom",
+          "order": 50
+        }
+      ]
+    },
+    {
+      "cardId": "CARD:0307",
+      "number": 307,
+      "set": "set03",
+      "setName": "Set03",
+      "slot": "Shoes",
+      "slotJa": "シューズ",
+      "displayName": "Set03 Shoes",
+      "layers": [
+        {
+          "image": "Assets/Cards/Parts/Set03/0307_shoes.png",
+          "layer": "Shoes",
+          "order": 40
+        }
+      ]
+    }
+  ]
+}
