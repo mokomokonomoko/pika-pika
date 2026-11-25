@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace AnimalGyaruMix
 {
-    public enum CardSlot { Ears, Tail, Markings, Top, Bottom, Accessory }
+    public enum CardSlot { Hair, Face, Ears, Tail, Top, Bottom, Accessory, Shoes }
     public enum CardRarity { Common, Rare, SuperRare }
 
     // One asset per physical card. Print the card ID in its QR code.
