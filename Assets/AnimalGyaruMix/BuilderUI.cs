@@ -56,7 +56,10 @@ namespace AnimalGyaruMix
         private static readonly Color Ink = new(0.17f, 0.10f, 0.20f);
         private static readonly Color Accent = new(0.56f, 0.20f, 0.39f);
         private static readonly Color Gold = new(0.56f, 0.29f, 0.10f);
+        private static readonly Color SilverBlue = new(0.23f, 0.46f, 0.69f);
         private const int CardsPerPage = 6;
+        private const int RareSparkleCount = 6;
+        private const int SuperRareSparkleCount = 12;
 
         private GyaruBuilder game;
         private Page page;
@@ -67,6 +70,8 @@ namespace AnimalGyaruMix
         private int sampleIndex;
         private bool confirmDelete;
         private Coroutine rarityAnimation;
+        private RectTransform sparkleLayer;
+        private Image[] sparkles;
 
         public bool IsScanning => camera == CameraPage.Scan;
         public bool IsTakingPhoto => camera == CameraPage.Photo;
@@ -133,31 +138,106 @@ namespace AnimalGyaruMix
             string rarity = card.Rarity == CardRarity.Common ? "" : card.RarityName + " · ";
             scanFeedback.text = $"{rarity}{card.DisplayName} equipped{added}";
             scanFeedback.color = card.Rarity == CardRarity.SuperRare ? Gold : Ink;
+            StopRarityReveal();
             if (card.Rarity != CardRarity.Common)
-            {
-                if (rarityAnimation != null)
-                    StopCoroutine(rarityAnimation);
                 rarityAnimation = StartCoroutine(AnimateRarity(card.Rarity));
-            }
         }
 
         private IEnumerator AnimateRarity(CardRarity rarity)
         {
-            rarityEffect.text = rarity == CardRarity.SuperRare ? "★  SUPER RARE  ★" : "✦  RARE  ✦";
+            if (sparkleLayer == null)
+                CreateSparkleLayer();
+
+            bool superRare = rarity == CardRarity.SuperRare;
+            int count = superRare ? SuperRareSparkleCount : RareSparkleCount;
+            float duration = superRare ? 1.8f : 0.9f;
+            Color banner = superRare ? Gold : SilverBlue;
+            rarityEffect.text = superRare ? "SUPER RARE" : "RARE";
             rarityEffect.gameObject.SetActive(true);
-            for (float time = 0f; time < 1.25f; time += Time.unscaledDeltaTime)
+            sparkleLayer.gameObject.SetActive(true);
+            for (int i = 0; i < sparkles.Length; i++)
+                sparkles[i].enabled = i < count;
+
+            for (float time = 0f; time < duration; time += Time.unscaledDeltaTime)
             {
-                float pulse = Mathf.Sin(time / 1.25f * Mathf.PI);
-                rarityEffect.rectTransform.localScale = Vector3.one * (1f + pulse * 0.22f);
-                rarityEffect.color = new Color(Gold.r, Gold.g, Gold.b, Mathf.Clamp01((1.25f - time) * 3f));
+                float progress = time / duration;
+                float pulse = Mathf.Sin(progress * Mathf.PI);
+                banner.a = Mathf.Clamp01((1f - progress) * 4f);
+                rarityEffect.color = banner;
+                rarityEffect.rectTransform.localScale = Vector3.one * (1f + pulse * (superRare ? .20f : .09f));
+
+                float radius = Mathf.Lerp(.18f, .43f, Mathf.Sqrt(progress));
+                float unit = Mathf.Min(sparkleLayer.rect.width, sparkleLayer.rect.height);
+                for (int i = 0; i < count; i++)
+                {
+                    float phase = (float)i / count;
+                    float angle = (phase + (superRare ? progress * .22f : 0f)) * 2f * Mathf.PI;
+                    var position = new Vector2(.5f + Mathf.Cos(angle) * radius, .48f + Mathf.Sin(angle) * radius * .85f);
+                    Image sparkle = sparkles[i];
+                    RectTransform diamond = sparkle.rectTransform;
+                    diamond.anchorMin = position;
+                    diamond.anchorMax = position;
+                    float twinkle = .40f + .60f * Mathf.Abs(Mathf.Sin((progress * 2f + phase) * Mathf.PI));
+                    diamond.sizeDelta = Vector2.one * (unit * (superRare ? .042f : .031f) * twinkle);
+                    diamond.localRotation = Quaternion.Euler(0, 0, 45f + (superRare ? progress * 180f : 0f));
+
+                    Color color = superRare
+                        ? Color.Lerp(new Color(1f, .70f, .20f), new Color(.74f, .30f, .90f), Mathf.PingPong(phase * 2f + progress * 2f, 1f))
+                        : Color.Lerp(SilverBlue, Color.white, twinkle * .75f);
+                    color.a = pulse;
+                    sparkle.color = color;
+                }
+
+                if (superRare)
+                    character.SetRevealPose(Mathf.SmoothStep(0f, 1f, Mathf.Min(progress * 6f, (1f - progress) * 4f)));
                 yield return null;
             }
-            rarityEffect.gameObject.SetActive(false);
+
             rarityAnimation = null;
+            HideRarityReveal();
+        }
+
+        private void CreateSparkleLayer()
+        {
+            // Temporary art consists of tinted UI diamonds that can be replaced with sprites.
+            var overlay = new GameObject("Rarity Sparkles", typeof(RectTransform));
+            sparkleLayer = (RectTransform)overlay.transform;
+            sparkleLayer.SetParent(character.transform, false);
+            sparkleLayer.anchorMin = Vector2.zero;
+            sparkleLayer.anchorMax = Vector2.one;
+            sparkleLayer.sizeDelta = Vector2.zero;
+            sparkles = new Image[SuperRareSparkleCount];
+
+            for (int i = 0; i < sparkles.Length; i++)
+            {
+                var sparkle = new GameObject("Sparkle", typeof(RectTransform), typeof(Image));
+                sparkle.transform.SetParent(sparkleLayer, false);
+                sparkles[i] = sparkle.GetComponent<Image>();
+                sparkles[i].raycastTarget = false;
+            }
+        }
+
+        private void StopRarityReveal()
+        {
+            if (rarityAnimation != null)
+            {
+                StopCoroutine(rarityAnimation);
+                rarityAnimation = null;
+            }
+            HideRarityReveal();
+        }
+
+        private void HideRarityReveal()
+        {
+            rarityEffect.gameObject.SetActive(false);
+            if (sparkleLayer != null)
+                sparkleLayer.gameObject.SetActive(false);
+            character.SetRevealPose(0f);
         }
 
         public void ShowScanFeedback(string message)
         {
+            StopRarityReveal();
             scanFeedback.color = Ink;
             scanFeedback.text = message;
             if (IsScanning)
@@ -194,6 +274,7 @@ namespace AnimalGyaruMix
 
         public void ShowCamera(bool photo)
         {
+            StopRarityReveal();
             camera = photo ? CameraPage.Photo : CameraPage.Scan;
             cameraPanel.SetActive(true);
             cameraHeading.text = photo ? "Take a photo" : "Scan a card";
@@ -248,12 +329,21 @@ namespace AnimalGyaruMix
 
         private void ShowPage(Page destination)
         {
+            if (destination != Page.Builder)
+                StopRarityReveal();
+
             page = destination;
             for (int i = 0; i < pages.Length; i++)
                 pages[i].SetActive(i == (int)destination);
 
             for (int i = 0; i < tabs.Length; i++)
                 SetButtonColor(tabs[i], i == (int)destination ? Accent : Ink);
+        }
+
+        private void OnDisable()
+        {
+            if (game != null)
+                StopRarityReveal();
         }
 
         private void SelectRarity(CardRarity rarity)

@@ -9,6 +9,30 @@ namespace AnimalGyaruMix
         [SerializeField] private Image[] slotImages;
         [SerializeField] private RawImage photoBackground;
 
+        private RectTransform artwork;
+        private Vector2 restPosition;
+        private Quaternion restRotation;
+        private Vector3 restScale;
+
+        internal void SetRevealPose(float weight)
+        {
+            if (artwork == null)
+            {
+                if (weight == 0f)
+                    return;
+
+                artwork = (RectTransform)slotImages[0].transform.parent;
+                restPosition = artwork.anchoredPosition;
+                restRotation = artwork.localRotation;
+                restScale = artwork.localScale;
+            }
+
+            // Lean and lift the existing sprite layers together until pose art is available.
+            artwork.anchoredPosition = restPosition + Vector2.up * (artwork.rect.height * .04f * weight);
+            artwork.localRotation = restRotation * Quaternion.Euler(0, 0, -10f * weight);
+            artwork.localScale = restScale * (1f + .06f * weight);
+        }
+
         public void SetLook(CardDefinition[] cards)
         {
             for (int i = 0; i < slotImages.Length; i++)
