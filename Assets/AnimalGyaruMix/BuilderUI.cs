@@ -389,7 +389,7 @@ namespace AnimalGyaruMix
         private void RefreshAchievements()
         {
             achievementList.text = string.Join("\n\n",
-                Achievement("Full Look", "Fill all six slots.", game.HasFullLook),
+                Achievement("Full Look", $"Fill all {GyaruBuilder.SlotCount} slots.", game.HasFullLook),
                 Achievement("Animal Mix", "Mix three animals in the same look.", game.HasThreeAnimals),
                 Achievement("Photo Debut", "Save a gyaru to the album.", game.HasSavedLook),
                 Achievement("Card Collector", "Discover every card.", game.DiscoveredCount == game.Catalog.Count));
